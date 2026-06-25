@@ -1,0 +1,70 @@
+services:
+  # PostgreSQL database
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: stackoverflowlite
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      retries: 5
+    networks:
+      - stackoverflow_network
+
+  # pgAdmin - web-based Postgres admin UI
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com # Login email for pgAdmin
+      PGADMIN_DEFAULT_PASSWORD: admin # Login password for pgAdmin
+    ports:
+      - "5050:80" # Access pgAdmin at http://localhost:5050
+    depends_on:
+      - db
+    networks:
+      - stackoverflow_network
+
+  # Redis - used for caching and view count tracking
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - stackoverflow_network
+
+  # StackOverflow Lite API
+  api:
+    build: .
+    ports:
+      - "8080:8080" # Swagger UI at http://localhost:8080
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: Host=db;Port=5432;Database=stackoverflowlite;Username=postgres;Password=postgres
+      ConnectionStrings__Redis: redis:6379
+      JwtSettings__SecretKey: your-very-long-secret-key-at-least-32-chars!!
+      JwtSettings__Issuer: StackOverFlowLite
+      JwtSettings__Audience: StackOverFlowLiteUsers
+      JwtSettings__ExpiryHours: 24
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - stackoverflow_network
+
+networks:
+  stackoverflow_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
