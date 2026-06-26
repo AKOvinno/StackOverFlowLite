@@ -142,8 +142,14 @@ Reputation never drops below zero. Users cannot gain reputation from votes on th
 
 You need .NET 10 SDK, PostgreSQL, and Redis installed locally.
 
-1. Update the connection strings in `src/StackOverFlowLite.API/appsettings.Development.json` to point at your local services.
-2. Run the API:
+1. Start Redis (via Docker):
+
+```bash
+docker run --name stackoverflowlite-redis -p 6379:6379 -d redis
+```
+
+2. Update the connection strings in `src/StackOverFlowLite.API/appsettings.Development.json` to point at your local services.
+3. Run the API:
 
 ```bash
 cd src/StackOverFlowLite.API
